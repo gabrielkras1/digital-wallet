@@ -1,0 +1,17 @@
+node_modules/
+
+dist/
+
+.env
+
+.prisma
+
+*.log
+
+coverage/
+
+generated/
+
+prisma/dev.db
+
+prisma/dev.db-journal
