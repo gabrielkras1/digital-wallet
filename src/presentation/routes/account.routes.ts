@@ -2,30 +2,25 @@ import { Router } from "express";
 
 import { PrismaAccountRepository } from "../../infrastructure/repositories/PrismaAccountRepository";
 import { PrismaTransactionRepository } from "../../infrastructure/repositories/PrismaTransactionRepository";
+import { PrismaTransferRepository } from "../../infrastructure/repositories/PrismaTransferRepository";
 
 import { TransferFundsUseCase } from "../../application/use-cases/TransferFundsUseCase";
+import { CreateAccountUseCase } from "../../application/use-cases/CreateAccountUseCase";
+import { DepositUseCase } from "../../application/use-cases/DepositUseCase";
+import { WithdrawUseCase } from "../../application/use-cases/WithdrawUseCase";
 
 import { TransferController } from "../controllers/TransferController";
-
-import { CreateAccountUseCase }
-from "../../application/use-cases/CreateAccountUseCase";
-
-import { CreateAccountController }
-from "../controllers/CreateAccountController";
-
-import { DepositUseCase }
-from "../../application/use-cases/DepositUseCase";
-
-import { DepositController }
-from "../controllers/DepositController";
-
-import { WithdrawUseCase }
-from "../../application/use-cases/WithdrawUseCase";
-
-import { WithdrawController }
-from "../controllers/WithdrawController";
+import { CreateAccountController } from "../controllers/CreateAccountController";
+import { DepositController } from "../controllers/DepositController";
+import { WithdrawController } from "../controllers/WithdrawController";
 
 const router = Router();
+
+/*
+|--------------------------------------------------------------------------
+| Repositories
+|--------------------------------------------------------------------------
+*/
 
 const accountRepository =
   new PrismaAccountRepository();
@@ -33,15 +28,19 @@ const accountRepository =
 const transactionRepository =
   new PrismaTransactionRepository();
 
+const transferRepository =
+  new PrismaTransferRepository();
+
+/*
+|--------------------------------------------------------------------------
+| Use Cases
+|--------------------------------------------------------------------------
+*/
+
 const transferUseCase =
   new TransferFundsUseCase(
     accountRepository,
-    transactionRepository
-  );
-
-const transferController =
-  new TransferController(
-    transferUseCase
+    transferRepository
   );
 
 const createAccountUseCase =
@@ -49,19 +48,9 @@ const createAccountUseCase =
     accountRepository
   );
 
-const createAccountController =
-  new CreateAccountController(
-    createAccountUseCase
-  );
-
 const depositUseCase =
   new DepositUseCase(
     accountRepository
-  );
-
-const depositController =
-  new DepositController(
-    depositUseCase
   );
 
 const withdrawUseCase =
@@ -69,79 +58,112 @@ const withdrawUseCase =
     accountRepository
   );
 
+/*
+|--------------------------------------------------------------------------
+| Controllers
+|--------------------------------------------------------------------------
+*/
+
+const transferController =
+  new TransferController(
+    transferUseCase
+  );
+
+const createAccountController =
+  new CreateAccountController(
+    createAccountUseCase
+  );
+
+const depositController =
+  new DepositController(
+    depositUseCase
+  );
+
 const withdrawController =
   new WithdrawController(
     withdrawUseCase
   );
 
-router.post(
-  "/transfer",
-  transferController.handle
-);
+/*
+|--------------------------------------------------------------------------
+| Routes
+|--------------------------------------------------------------------------
+*/
 
+// Criar conta
 router.post(
   "/accounts",
   createAccountController.handle
 );
 
+// Depositar
 router.post(
   "/deposit",
   depositController.handle
 );
 
+// Sacar
 router.post(
   "/withdraw",
   withdrawController.handle
 );
 
+// Transferir
+router.post(
+  "/transfer",
+  transferController.handle
+);
 
-
-export default router;
-
-
+// Consultar saldo de uma conta
 router.get(
   "/account/:id",
-  async (req, res) => {
+  async (req, res): Promise<void> => {
 
     const account =
       await accountRepository.findById(
         req.params.id
       );
 
-    return res.json({
-      id: account?.id,
+    if (!account) {
+      res.status(404).json({
+        error: "Conta não encontrada"
+      });
+      return;
+    }
+
+    res.json({
+      id: account.id,
+      document: account.document,
       balance:
-      account?.getBalance().value
+        account.getBalance().value
     });
 
   }
 );
 
+// Histórico de transações
 router.get(
   "/transactions/:id",
-  async (req, res) => {
+  async (req, res): Promise<void> => {
 
     const transactions =
-      await transactionRepository
-      .findByAccountId(
+      await transactionRepository.findByAccountId(
         req.params.id
       );
 
-    return res.json(
-      transactions
-    );
+    res.json(transactions);
 
   }
 );
 
 router.get(
   "/accounts",
-  async (req, res) => {
+  async (req, res): Promise<void> => {
 
     const accounts =
       await accountRepository.findAll();
 
-    return res.json(
+    res.json(
       accounts.map(
         account => ({
           id: account.id,
@@ -154,3 +176,5 @@ router.get(
 
   }
 );
+
+export default router;

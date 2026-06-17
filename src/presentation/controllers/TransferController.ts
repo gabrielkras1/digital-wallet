@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
-import { TransferFundsUseCase } from "../../application/use-cases/TransferFundsUseCase";
+
+import { TransferFundsUseCase }
+from "../../application/use-cases/TransferFundsUseCase";
 
 export class TransferController {
 
@@ -10,7 +12,7 @@ export class TransferController {
   handle = async (
     req: Request,
     res: Response
-  ) => {
+  ): Promise<void> => {
 
     try {
 
@@ -26,16 +28,18 @@ export class TransferController {
         amount
       );
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Transferência realizada"
       });
 
     } catch (error: any) {
 
-      return res.status(400).json({
+      res.status(400).json({
         error: error.message
       });
 
     }
+
   };
+
 }

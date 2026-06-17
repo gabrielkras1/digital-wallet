@@ -1,16 +1,14 @@
 import { Money } from "../../domain/value-objects/Money";
 import { IAccountRepository } from "../../domain/repositories/IAccountRepository";
-import { ITransactionRepository } from "../../domain/repositories/ITransactionRepository";
-import {
-  Transaction,
-  TransactionType
-} from "../../domain/entities/Transaction";
+
+import { PrismaTransferRepository }
+from "../../infrastructure/repositories/PrismaTransferRepository";
 
 export class TransferFundsUseCase {
 
   constructor(
     private accountRepository: IAccountRepository,
-    private transactionRepository: ITransactionRepository
+    private transferRepository: PrismaTransferRepository
   ) {}
 
   async execute(
@@ -20,41 +18,46 @@ export class TransferFundsUseCase {
   ): Promise<void> {
 
     if (senderId === receiverId) {
-      throw new Error("Transferência para mesma conta");
+      throw new Error(
+        "Transferência para mesma conta"
+      );
     }
 
     const sender =
-      await this.accountRepository.findById(senderId);
+      await this.accountRepository.findById(
+        senderId
+      );
 
     const receiver =
-      await this.accountRepository.findById(receiverId);
+      await this.accountRepository.findById(
+        receiverId
+      );
 
     if (!sender) {
-      throw new Error("Conta origem não encontrada");
+      throw new Error(
+        "Conta origem não encontrada"
+      );
     }
 
     if (!receiver) {
-      throw new Error("Conta destino não encontrada");
+      throw new Error(
+        "Conta destino não encontrada"
+      );
     }
 
-    const amount = new Money(amountInCents);
+    const amount =
+      new Money(amountInCents);
 
     sender.debit(amount);
 
     receiver.credit(amount);
 
-    await this.accountRepository.save(sender);
-    await this.accountRepository.save(receiver);
-
-    await this.transactionRepository.save(
-      new Transaction(
-        crypto.randomUUID(),
-        senderId,
-        receiverId,
-        amountInCents,
-        TransactionType.TRANSFER,
-        new Date()
-      )
+    await this.transferRepository.transfer(
+      sender.id,
+      receiver.id,
+      amount.value
     );
+
   }
+
 }
